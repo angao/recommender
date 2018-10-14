@@ -52,7 +52,7 @@ func create(driver, config string) *xorm.Engine {
 	}
 
 	if err := engine.Ping(); err != nil {
-		glog.Fatalf("database ping attempts failed: %#v", err)
+		glog.Errorf("database ping attempts failed: %#v", err)
 	}
 	// engine.ShowSQL(true)
 
