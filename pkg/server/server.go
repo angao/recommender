@@ -36,6 +36,7 @@ type Controller interface {
 
 	CreateTimeframe(c *gin.Context)
 	GetTimeframe(c *gin.Context)
+	UpdateTimeframe(c *gin.Context)
 	ListTimeframes(c *gin.Context)
 	DeleteTimeframe(c *gin.Context)
 }

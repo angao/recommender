@@ -61,6 +61,7 @@ func Load(s server.Controller, middleware ...gin.HandlerFunc) http.Handler {
 		app.POST("/timeframe", s.CreateTimeframe)
 		app.GET("/timeframes", s.ListTimeframes)
 		app.GET("/timeframe/:name", s.GetTimeframe)
+		app.PUT("/timeframe/:id", s.UpdateTimeframe)
 		app.DELETE("/timeframe/:name", s.DeleteTimeframe)
 	}
 
