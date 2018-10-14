@@ -28,7 +28,11 @@ type ClusterState struct {
 	// Applications
 	Applications map[string]*v1alpha1.Application
 
+	Timeframes map[string]*v1alpha1.Timeframe
+
 	Vpas map[ApplicationID]*Vpa
+
+	TimeframeVpas map[string]map[ApplicationID]*Vpa
 }
 
 // AggregateStateKey determines the set of containers for which the usage samples
@@ -45,8 +49,10 @@ type aggregateContainerStatesMap map[AggregateStateKey]*AggregateContainerState
 // NewClusterState returns a new ClusterState with no pods.
 func NewClusterState() *ClusterState {
 	return &ClusterState{
-		Applications: make(map[string]*v1alpha1.Application),
-		Vpas:         make(map[ApplicationID]*Vpa),
+		Applications:  make(map[string]*v1alpha1.Application),
+		Timeframes:    make(map[string]*v1alpha1.Timeframe),
+		Vpas:          make(map[ApplicationID]*Vpa),
+		TimeframeVpas: make(map[string]map[ApplicationID]*Vpa),
 	}
 }
 
@@ -94,6 +100,47 @@ func (cluster *ClusterState) AddOrUpdateVPA(id ApplicationID) {
 func (cluster *ClusterState) DeleteVPA(id ApplicationID) {
 	if _, exist := cluster.Vpas[id]; exist {
 		delete(cluster.Vpas, id)
+	}
+}
+
+func (cluster *ClusterState) AddTimeframe(timeframe *v1alpha1.Timeframe) {
+	name := timeframe.Name
+	_, exists := cluster.Timeframes[name]
+	if exists {
+		cluster.DeleteTimeframe(name)
+		exists = false
+	}
+	if !exists {
+		cluster.Timeframes[name] = timeframe
+	}
+}
+
+func (cluster *ClusterState) DeleteTimeframe(name string) {
+	if _, exists := cluster.Timeframes[name]; exists {
+		delete(cluster.Timeframes, name)
+	}
+}
+
+func (cluster *ClusterState) AddOrUpdateTimeframeVPA(name string) {
+	_, exist := cluster.TimeframeVpas[name]
+	if exist {
+		cluster.DeleteTimeframeVPAs(name)
+		exist = false
+	}
+	if !exist {
+		vpaMap := make(map[ApplicationID]*Vpa)
+		for appName := range cluster.Applications {
+			applicationID := ApplicationID{Name: appName}
+			vpa := NewVpa(applicationID)
+			vpaMap[applicationID] = vpa
+		}
+		cluster.TimeframeVpas[name] = vpaMap
+	}
+}
+
+func (cluster *ClusterState) DeleteTimeframeVPAs(name string) {
+	if _, exist := cluster.TimeframeVpas[name]; exist {
+		delete(cluster.TimeframeVpas, name)
 	}
 }
 

@@ -37,6 +37,10 @@ type Store interface {
 
 	ListApplicationResource() ([]*v1alpha1.ApplicationResource, error)
 
+	ListTimeframeApplicationResource(name string) ([]*v1alpha1.ApplicationResource, error)
+
+	GetTimeframeApplicationResource(name, appName string) (*v1alpha1.ApplicationResource, error)
+
 	AddOrUpdateContainerResource(resource []*v1alpha1.ContainerResource) error
 
 	// Timeframe CRUD
@@ -49,4 +53,6 @@ type Store interface {
 	UpdateTimeframe(frame *v1alpha1.Timeframe) error
 
 	DeleteTimeframe(frame *v1alpha1.Timeframe) error
+
+	UpdateTimeframes(timeframes []*v1alpha1.Timeframe) error
 }

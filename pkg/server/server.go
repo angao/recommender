@@ -30,6 +30,8 @@ type Controller interface {
 
 	GetResource(c *gin.Context)
 	ListResource(c *gin.Context)
+	ListTimeframeResource(c *gin.Context)
+	GetTimeframeResource(c *gin.Context)
 
 	CreateTimeframe(c *gin.Context)
 	GetTimeframe(c *gin.Context)

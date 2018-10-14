@@ -29,7 +29,7 @@ import (
 )
 
 var (
-	metricsFetcherInterval = flag.Duration("recommender-interval", 1*time.Minute, `How often metrics should be fetched`)
+	metricsFetcherInterval = flag.Duration("recommender-interval", 2*time.Hour, `How often metrics should be fetched`)
 	prometheusAddress      = flag.String("prometheus-address", "", `Where to reach for Prometheus metrics`)
 	apiserverPort          = flag.Int("apiserver-port", 9098, `Specifies the http apiserver port`)
 	databaseConfig         = flag.String("db-config-file", "", `Where to reach for MySQL. The db config file type is yaml`)

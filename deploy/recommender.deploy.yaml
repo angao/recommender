@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: recommender
+  labels:
+    control-plane: recommender
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      control-plane: recommender
+  template:
+    metadata:
+      labels:
+        control-plane: recommender
+    spec:
+      containers:
+      - name: recommender
+        image: recommender:v0.1.0
+        imagePullPolicy: IfNotPresent
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+          limits:
+            cpu: 500m
+            memory: 2500Mi
+        ports:
+        - containerPort: 9098
+          protocol: TCP
+        volumeMounts:
+        - name: tz-config
+          mountPath: /etc/localtime
+        - name: db-config
+          mountPath: /etc/db.yaml
+          subPath: db.yaml
+      volumes:
+      - name: tz-config
+        hostPath:
+          path: /etc/localtime
+      - name: db-config
+        hostPath:
+          path: /data/
+      terminationGracePeriodSeconds: 10

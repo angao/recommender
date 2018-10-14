@@ -30,7 +30,7 @@ func (db *datastore) GetApplicationResource(name string) (*v1alpha1.ApplicationR
 	if !b {
 		return nil, nil
 	}
-	err = db.Engine.Where("application_id = ?", application.ID).Find(&containerResources)
+	err = db.Engine.Where("application_id = ?", application.ID).And("timeframe_id != 0").Find(&containerResources)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func (db *datastore) ListApplicationResource() ([]*v1alpha1.ApplicationResource,
 	if err != nil {
 		return nil, err
 	}
-	err = db.Engine.Find(&containerResources)
+	err = db.Engine.Where("timeframe_id != 0").Find(&containerResources)
 	if err != nil {
 		return nil, err
 	}
@@ -103,4 +103,56 @@ func Combine(applications []*v1alpha1.Application, containerResources []*v1alpha
 		}
 	}
 	return applicationResources
+}
+
+func (db *datastore) ListTimeframeApplicationResource(name string) ([]*v1alpha1.ApplicationResource, error) {
+	timeframe := new(v1alpha1.Timeframe)
+	b, err := db.Engine.Where("name = ?", name).Limit(1).Get(timeframe)
+	if err != nil {
+		return nil, err
+	}
+	if !b {
+		return nil, nil
+	}
+	applications := make([]*v1alpha1.Application, 0)
+	containerResources := make([]*v1alpha1.ContainerResource, 0)
+	err = db.Engine.Find(&applications)
+	if err != nil {
+		return nil, err
+	}
+	err = db.Engine.Where("timeframe_id = ?", timeframe.ID).Find(&containerResources)
+	if err != nil {
+		return nil, err
+	}
+	return Combine(applications, containerResources), nil
+}
+
+func (db *datastore) GetTimeframeApplicationResource(name, appName string) (*v1alpha1.ApplicationResource, error) {
+	timeframe := new(v1alpha1.Timeframe)
+	b, err := db.Engine.Where("name = ?", name).Limit(1).Get(timeframe)
+	if err != nil {
+		return nil, err
+	}
+	if !b {
+		return nil, nil
+	}
+	application := new(v1alpha1.Application)
+	b, err = db.Engine.Where("name = ?", appName).Limit(1).Get(application)
+	if err != nil {
+		return nil, err
+	}
+	if !b {
+		return nil, nil
+	}
+	containerResources := make([]*v1alpha1.ContainerResource, 0)
+	err = db.Engine.Where("application_id = ?", application.ID).And("timeframe_id = ?", timeframe.ID).Find(&containerResources)
+	if err != nil {
+		return nil, err
+	}
+
+	return &v1alpha1.ApplicationResource{
+		ID:                application.ID,
+		Name:              application.Name,
+		ContainerResource: containerResources,
+	}, nil
 }

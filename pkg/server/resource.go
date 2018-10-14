@@ -20,14 +20,13 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/angao/recommender/pkg/client/apis"
 	"github.com/gin-gonic/gin"
 	"github.com/golang/glog"
 )
 
 func (h *httpController) GetResource(c *gin.Context) {
 	name := c.Param("name")
-	glog.V(4).Infof("namespace: %s name: %s", name)
+	glog.V(4).Infof("GetResource name: %s", name)
 	resource, err := h.store.GetApplicationResource(name)
 	if err != nil {
 		glog.Errorf("Internal Server Error: %#v", err)
@@ -62,18 +61,48 @@ func (h *httpController) ListResource(c *gin.Context) {
 		return
 	}
 
-	recommendResources := make([]*apis.RecommendResource, 0)
-	if len(resources) == 0 {
-		c.JSON(http.StatusOK, gin.H{
-			"code":    200,
-			"message": "success",
-			"data":    recommendResources,
-		})
-		return
-	}
 	c.JSON(http.StatusOK, gin.H{
 		"code":    200,
 		"message": "success",
 		"data":    resources,
+	})
+}
+
+func (h *httpController) ListTimeframeResource(c *gin.Context) {
+	timeframeName := c.Param("name")
+	resources, err := h.store.ListTimeframeApplicationResource(timeframeName)
+	if err != nil {
+		glog.Errorf("Internal Server Error: %#v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    500,
+			"message": "Internal Server Error",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    200,
+		"message": "success",
+		"data":    resources,
+	})
+}
+
+func (h *httpController) GetTimeframeResource(c *gin.Context) {
+	name := c.Param("name")
+	appName := c.Param("appName")
+	resource, err := h.store.GetTimeframeApplicationResource(name, appName)
+	if err != nil {
+		glog.Errorf("Internal Server Error: %#v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    500,
+			"message": "Internal Server Error",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    200,
+		"message": "success",
+		"data":    resource,
 	})
 }

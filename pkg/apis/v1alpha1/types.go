@@ -41,6 +41,10 @@ type RecommendResourceStore interface {
 	ListApplicationResource() ([]*ApplicationResource, error)
 
 	AddOrUpdateContainerResource(resource []*ContainerResource) error
+
+	ListTimeframeApplicationResource(name string) ([]*ApplicationResource, error)
+
+	GetTimeframeApplicationResource(name, appName string) (*ApplicationResource, error)
 }
 
 type TimeframeStore interface {
@@ -52,6 +56,8 @@ type TimeframeStore interface {
 	ListTimeframe() ([]*Timeframe, error)
 
 	UpdateTimeframe(frame *Timeframe) error
+
+	UpdateTimeframes(frame []*Timeframe) error
 
 	DeleteTimeframe(frame *Timeframe) error
 }
@@ -67,8 +73,9 @@ type Application struct {
 // ContainerResource defines container of application resource
 type ContainerResource struct {
 	ID                     int64     `json:"id"                             xorm:"pk autoincr 'id'"`
-	ApplicationID          int64     `json:"application_id"                 xorm:"application_id"`
 	Name                   string    `json:"name"                           xorm:"name"`
+	ApplicationID          int64     `json:"application_id"                 xorm:"application_id"`
+	TimeframeID            int64     `json:"timeframe_id"                   xorm:"timeframe_id"`
 	CPULimit               int64     `json:"cpu_limit"                      xorm:"cpu_limit"`
 	MemoryLimit            int64     `json:"memory_limit"                   xorm:"memory_limit"`
 	DiskReadIOLimit        int64     `json:"disk_read_io_limit"             xorm:"disk_read_io_limit"`
@@ -79,12 +86,20 @@ type ContainerResource struct {
 	Updated                time.Time `json:"updated"                        xorm:"updated"`
 }
 
+type StatusName string
+
+const (
+	StatusOn  = "on"
+	StatusOff = "off"
+)
+
 // Timeframe defines query time frame
 type Timeframe struct {
 	ID          int64     `json:"id"                  xorm:"pk autoincr 'id'"`
 	Name        string    `json:"name"                xorm:"name"`
 	Start       time.Time `json:"start"               xorm:"start"`
 	End         time.Time `json:"end"                 xorm:"end"`
+	Status      string    `json:"status"              xorm:"status"`
 	Description string    `json:"description"         xorm:"description"`
 	Created     time.Time `json:"created"             xorm:"created"`
 	Updated     time.Time `json:"updated"             xorm:"updated"`

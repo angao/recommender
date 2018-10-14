@@ -54,6 +54,8 @@ func Load(s server.Controller, middleware ...gin.HandlerFunc) http.Handler {
 
 		app.GET("/resource/:name", s.GetResource)
 		app.GET("/resources", s.ListResource)
+		app.GET("/resources/timeframe/:name", s.ListTimeframeResource)
+		app.GET("/resources/timeframe/:name/:appName", s.GetTimeframeResource)
 
 		app.POST("/timeframe", s.CreateTimeframe)
 		app.GET("/timeframes", s.ListTimeframes)

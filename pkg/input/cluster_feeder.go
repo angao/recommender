@@ -17,6 +17,9 @@ limitations under the License.
 package input
 
 import (
+	"strconv"
+	"time"
+
 	"github.com/angao/recommender/pkg/apis/v1alpha1"
 	"github.com/angao/recommender/pkg/utils/work"
 	"github.com/golang/glog"
@@ -31,10 +34,16 @@ type ClusterStateFeeder interface {
 	// LoadApplications loads all applications into clusterState
 	LoadApplications()
 
+	LoadTimeframes()
+
 	LoadVPAs()
+
+	LoadTimeframeVPAs()
 
 	// LoadMetrics loads clusterState with current usage metrics of containers.
 	LoadMetrics()
+
+	LoadTimeframeMetrics()
 
 	UpdateResources()
 }
@@ -63,9 +72,7 @@ func (feeder *clusterStateFeeder) LoadApplications() {
 	}
 
 	for _, application := range applications {
-		if _, exist := feeder.clusterState.Applications[application.Name]; !exist {
-			feeder.clusterState.AddApplication(application)
-		}
+		feeder.clusterState.AddApplication(application)
 	}
 
 	for name := range feeder.clusterState.Applications {
@@ -77,6 +84,33 @@ func (feeder *clusterStateFeeder) LoadApplications() {
 		}
 		if !exist {
 			feeder.clusterState.DeleteApplication(name)
+		}
+	}
+}
+
+func (feeder *clusterStateFeeder) LoadTimeframes() {
+	timeframes, err := feeder.store.ListTimeframe()
+	if err != nil {
+		glog.Errorf("Cannot list timeframes. Reason: %+v", err)
+	} else {
+		glog.V(3).Infof("Fetched %d timeframes.", len(timeframes))
+	}
+	for _, timeframe := range timeframes {
+		if timeframe.Status != v1alpha1.StatusOn {
+			continue
+		}
+		feeder.clusterState.AddTimeframe(timeframe)
+	}
+
+	for name := range feeder.clusterState.Timeframes {
+		exist := false
+		for _, timeframe := range timeframes {
+			if timeframe.Status == v1alpha1.StatusOn && name == timeframe.Name {
+				exist = true
+			}
+		}
+		if !exist {
+			feeder.clusterState.DeleteTimeframe(name)
 		}
 	}
 }
@@ -97,6 +131,21 @@ func (feeder *clusterStateFeeder) LoadVPAs() {
 	}
 }
 
+func (feeder *clusterStateFeeder) LoadTimeframeVPAs() {
+	timeframes := feeder.clusterState.Timeframes
+	frameKey := make(map[string]bool)
+	for name := range timeframes {
+		frameKey[name] = true
+		feeder.clusterState.AddOrUpdateTimeframeVPA(name)
+	}
+
+	for name := range feeder.clusterState.TimeframeVpas {
+		if _, exist := frameKey[name]; !exist {
+			feeder.clusterState.DeleteTimeframeVPAs(name)
+		}
+	}
+}
+
 func (feeder *clusterStateFeeder) loadHistoryMetrics(name string) {
 	aggregateContainerState, err := feeder.provider.GetHistoryMetrics(name)
 	if err != nil {
@@ -108,6 +157,63 @@ func (feeder *clusterStateFeeder) loadHistoryMetrics(name string) {
 			vpa.SetAggregationContainerState(aggregateContainerState)
 		}
 	}
+}
+
+func (feeder *clusterStateFeeder) getTimeframeMetrics(appName, historyLen, offset string) (map[model.AggregateStateKey]*model.AggregateContainerState, error) {
+	aggregateContainerState, err := feeder.provider.GetTimeframeMetrics(appName, historyLen, offset)
+	if err != nil {
+		glog.Errorf("Cannot get %s timeframe history metrics", appName)
+		return nil, err
+	}
+	return aggregateContainerState, nil
+}
+
+type QueryParam struct {
+	TimeframeName string
+	AppName       string
+	HistoryLen    string
+	Offset        string
+}
+
+func (feeder *clusterStateFeeder) LoadTimeframeMetrics() {
+	queryParams := make([]QueryParam, 0)
+	now := time.Now()
+	for timeframeName, timeframe := range feeder.clusterState.Timeframes {
+		timeframeVpa := feeder.clusterState.TimeframeVpas[timeframeName]
+		for appID := range timeframeVpa {
+			duration := timeframe.End.Sub(timeframe.Start).Minutes()
+			if duration <= 0 {
+				glog.Errorf("timeframe %s start after end", timeframeName)
+				continue
+			}
+			offset := now.Sub(timeframe.End).Hours()
+			if offset < 0 {
+				glog.Errorf("timeframe %s end time after now", timeframeName)
+				continue
+			}
+			queryParam := QueryParam{
+				TimeframeName: timeframeName,
+				AppName:       appID.Name,
+				HistoryLen:    strconv.Itoa(int(duration)),
+				Offset:        strconv.Itoa(int(offset)),
+			}
+			queryParams = append(queryParams, queryParam)
+		}
+	}
+	load := func(i int) {
+		queryParam := queryParams[i]
+		aggregateContainerState, err := feeder.getTimeframeMetrics(queryParam.AppName, queryParam.HistoryLen, queryParam.Offset)
+		if err != nil {
+			return
+		}
+		timeframeVPA := feeder.clusterState.TimeframeVpas[queryParam.TimeframeName]
+		for appID, vpa := range timeframeVPA {
+			if appID.Name == queryParam.AppName {
+				vpa.SetAggregationContainerState(aggregateContainerState)
+			}
+		}
+	}
+	work.Parallelize(8, len(queryParams), load)
 }
 
 func (feeder *clusterStateFeeder) LoadMetrics() {
@@ -136,9 +242,30 @@ func (feeder *clusterStateFeeder) UpdateResources() {
 			containerResources = append(containerResources, containerResource)
 		}
 	}
+	timeframes := make([]*v1alpha1.Timeframe, 0)
+	for name, timeframe := range feeder.clusterState.Timeframes {
+		timeframeVPA := feeder.clusterState.TimeframeVpas[name]
+		for appID, vpa := range timeframeVPA {
+			application := feeder.clusterState.Applications[appID.Name]
+			for _, recommendResource := range vpa.Recommendation {
+				containerResource := Convert(recommendResource)
+				containerResource.ApplicationID = application.ID
+				containerResource.TimeframeID = timeframe.ID
+				containerResources = append(containerResources, containerResource)
+			}
+		}
+		timeframe.Status = v1alpha1.StatusOff
+		timeframes = append(timeframes, timeframe)
+	}
+
 	err := feeder.store.AddOrUpdateContainerResource(containerResources)
 	if err != nil {
 		glog.Errorf("add or update container resource error: %+v", err)
+	} else {
+		err := feeder.store.UpdateTimeframes(timeframes)
+		if err != nil {
+			glog.Errorf("update timeframe error: %+v", err)
+		}
 	}
 }
 

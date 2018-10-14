@@ -48,7 +48,45 @@ func (db *datastore) UpdateTimeframe(frame *v1alpha1.Timeframe) error {
 	return err
 }
 
+func (db *datastore) UpdateTimeframes(timeframes []*v1alpha1.Timeframe) error {
+	session := db.Engine.NewSession()
+	defer session.Close()
+
+	session.Begin()
+
+	for _, timeframe := range timeframes {
+		_, err := session.ID(timeframe.ID).Update(timeframe)
+		if err != nil {
+			session.Rollback()
+			return err
+		}
+	}
+	return session.Commit()
+}
+
 func (db *datastore) DeleteTimeframe(frame *v1alpha1.Timeframe) error {
-	_, err := db.Engine.Id(frame.ID).Delete(frame)
-	return err
+	session := db.Engine.NewSession()
+	defer session.Close()
+	session.Begin()
+
+	_, err := session.ID(frame.ID).Delete(frame)
+	if err != nil {
+		session.Rollback()
+		return err
+	}
+	containerResources := make([]*v1alpha1.ContainerResource, 0)
+	err = session.Where("timeframe_id = ?", frame.ID).Find(&containerResources)
+	if err != nil {
+		session.Rollback()
+		return err
+	}
+	for _, containerResource := range containerResources {
+		_, err := session.ID(containerResource.ID).Delete(containerResource)
+		if err != nil {
+			session.Rollback()
+			return err
+		}
+	}
+
+	return session.Commit()
 }

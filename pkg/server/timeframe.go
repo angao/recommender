@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/angao/recommender/pkg/apis/v1alpha1"
@@ -34,6 +35,7 @@ type TimeframeForm struct {
 	Name        string `json:"name"`
 	Start       string `form:"start"`
 	End         string `form:"end"`
+	Status      string `json:"status"`
 	Description string `form:"description"`
 }
 
@@ -160,6 +162,13 @@ func ParseAndValidate(form *TimeframeForm) (*v1alpha1.Timeframe, error) {
 	if len(form.Name) == 0 || len(form.Start) == 0 || len(form.End) == 0 {
 		return nil, errors.New("name, start or end field cannot be empty")
 	}
+	var status string
+	if len(form.Status) == 0 {
+		status = "off"
+	}
+	if !strings.Contains("on,off", status) {
+		return nil, errors.New("status must be 'on' or 'off'")
+	}
 	start, err := time.ParseInLocation(Layout, form.Start, time.Local)
 	if err != nil {
 		return nil, err
@@ -175,6 +184,7 @@ func ParseAndValidate(form *TimeframeForm) (*v1alpha1.Timeframe, error) {
 		Name:        form.Name,
 		Start:       start,
 		End:         end,
+		Status:      status,
 		Description: form.Description,
 	}, nil
 }

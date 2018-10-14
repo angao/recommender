@@ -23,6 +23,7 @@ import (
 	"github.com/go-xorm/xorm"
 
 	"github.com/angao/recommender/pkg/store"
+
 	"github.com/golang/glog"
 )
 

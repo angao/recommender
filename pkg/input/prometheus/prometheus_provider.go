@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/golang/glog"
+
 	"github.com/angao/recommender/pkg/model"
 )
 
@@ -30,8 +32,10 @@ const (
 // Provider gives metrics data of all pods in a cluster.
 // Consider refactoring to passing ClusterState and create history provider working with checkpoints.
 type Provider interface {
-	// GetClusterHistory(string) (map[model.PodID]*PodHistory, error)
+	// GetClusterHistory(string)
 	GetHistoryMetrics(name string) (map[model.AggregateStateKey]*model.AggregateContainerState, error)
+
+	GetTimeframeMetrics(name, historyLen, offset string) (map[model.AggregateStateKey]*model.AggregateContainerState, error)
 }
 
 type prometheusProvider struct {
@@ -127,6 +131,37 @@ func (p *prometheusProvider) GetHistoryMetrics(name string) (map[model.Aggregate
 		return nil, fmt.Errorf("cannot get network receive io history: %v", err)
 	}
 	err = p.readResource(res, fmt.Sprintf("max_over_time(container_network_transmit_packets_total{%s}[%s])", podSelector, historyLength), model.ResourceNetworkTransmitIO)
+	if err != nil {
+		return nil, fmt.Errorf("cannot get network transmit io history: %v", err)
+	}
+	return res, nil
+}
+
+func (p *prometheusProvider) GetTimeframeMetrics(name, historyLen, offset string) (map[model.AggregateStateKey]*model.AggregateContainerState, error) {
+	glog.Error("-------")
+	res := make(map[model.AggregateStateKey]*model.AggregateContainerState)
+	podSelector := fmt.Sprintf(`job="kubernetes-cadvisor",pod_name=~"^.*$",container_name!="POD",image!="",name=~"^k8s_.*",application_name="%s"`, name)
+	err := p.readResource(res, fmt.Sprintf("max_over_time(container_cpu_usage_seconds_total:rate:1m{%s}[%s] offset %s)", podSelector, historyLen, offset), model.ResourceCPU)
+	if err != nil {
+		return nil, fmt.Errorf("cannot get cpu usage history: %v", err)
+	}
+	err = p.readResource(res, fmt.Sprintf("max_over_time(container_memory_usage_bytes{%s}[%s] offset %s)", podSelector, historyLen, offset), model.ResourceMemory)
+	if err != nil {
+		return nil, fmt.Errorf("cannot get memory usage history: %v", err)
+	}
+	err = p.readResource(res, fmt.Sprintf("max_over_time(container_fs_reads_total{%s}[%s] offset %s)", podSelector, historyLen, offset), model.ResourceDiskReadIO)
+	if err != nil {
+		return nil, fmt.Errorf("cannot get disk read io history: %v", err)
+	}
+	err = p.readResource(res, fmt.Sprintf("max_over_time(container_fs_writes_total{%s}[%s] offset %s)", podSelector, historyLen, offset), model.ResourceDiskWriteIO)
+	if err != nil {
+		return nil, fmt.Errorf("cannot get disk write io history: %v", err)
+	}
+	err = p.readResource(res, fmt.Sprintf("max_over_time(container_network_receive_packets_total{%s}[%s] offset %s)", podSelector, historyLen, offset), model.ResourceNetworkReceiveIO)
+	if err != nil {
+		return nil, fmt.Errorf("cannot get network receive io history: %v", err)
+	}
+	err = p.readResource(res, fmt.Sprintf("max_over_time(container_network_transmit_packets_total{%s}[%s] offset %s)", podSelector, historyLen, offset), model.ResourceNetworkTransmitIO)
 	if err != nil {
 		return nil, fmt.Errorf("cannot get network transmit io history: %v", err)
 	}
