@@ -29,6 +29,7 @@ type Controller interface {
 	DeleteApplication(c *gin.Context)
 
 	GetResource(c *gin.Context)
+	CreateResource(c *gin.Context)
 	ListResource(c *gin.Context)
 	ListTimeframeResource(c *gin.Context)
 	GetTimeframeResource(c *gin.Context)

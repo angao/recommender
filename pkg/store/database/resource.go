@@ -62,12 +62,16 @@ func (db *datastore) AddOrUpdateContainerResource(resources []*v1alpha1.Containe
 	session.Begin()
 
 	for _, resource := range resources {
-		has, err := session.Exist(resource)
+		resourceCopy := new(v1alpha1.ContainerResource)
+		has, err := session.Where("application_id = ?", resource.ApplicationID).Limit(1).Get(resourceCopy)
 		if err != nil {
 			session.Rollback()
 			return err
 		}
 		if has {
+			if resource.TimeframeID == 0 {
+				compare(resource, resourceCopy)
+			}
 			_, err := session.ID(resource.ID).Update(resource)
 			if err != nil {
 				session.Rollback()
@@ -155,4 +159,30 @@ func (db *datastore) GetTimeframeApplicationResource(name, appName string) (*v1a
 		Name:              application.Name,
 		ContainerResource: containerResources,
 	}, nil
+}
+
+func compare(r1, r2 *v1alpha1.ContainerResource) {
+	if r1.CPULimit < r2.CPULimit {
+		r1.CPULimit = r2.CPULimit
+	}
+	if r1.MemoryLimit < r2.MemoryLimit {
+		r1.MemoryLimit = r2.MemoryLimit
+	}
+	if r1.DiskReadIOLimit < r2.DiskReadIOLimit {
+		r1.DiskReadIOLimit = r2.DiskReadIOLimit
+	}
+	if r1.DiskWriteIOLimit < r2.DiskWriteIOLimit {
+		r1.DiskWriteIOLimit = r2.DiskWriteIOLimit
+	}
+	if r1.NetworkReceiveIOLimit < r2.NetworkReceiveIOLimit {
+		r1.NetworkReceiveIOLimit = r2.NetworkReceiveIOLimit
+	}
+	if r1.NetworkTransmitIOLimit < r2.NetworkTransmitIOLimit {
+		r1.NetworkTransmitIOLimit = r2.NetworkTransmitIOLimit
+	}
+}
+
+func (db *datastore) CreateContainerResource(resource *v1alpha1.ContainerResource) error {
+	_, err := db.Engine.Insert(resource)
+	return err
 }

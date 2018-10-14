@@ -35,6 +35,8 @@ type Store interface {
 	// RecommendResource CRUD
 	GetApplicationResource(name string) (*v1alpha1.ApplicationResource, error)
 
+	CreateContainerResource(resource *v1alpha1.ContainerResource) error
+
 	ListApplicationResource() ([]*v1alpha1.ApplicationResource, error)
 
 	ListTimeframeApplicationResource(name string) ([]*v1alpha1.ApplicationResource, error)

@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/angao/recommender/pkg/apis/v1alpha1"
+
 	"github.com/gin-gonic/gin"
 	"github.com/golang/glog"
 )
@@ -104,5 +106,38 @@ func (h *httpController) GetTimeframeResource(c *gin.Context) {
 		"code":    200,
 		"message": "success",
 		"data":    resource,
+	})
+}
+
+type TestResource struct {
+	CPULimit    int64 `json:"cpu_limit"`
+	MemoryLimit int64 `json:"memory_limit"`
+}
+
+func (h *httpController) CreateResource(c *gin.Context) {
+	application := new(TestResource)
+	if err := c.ShouldBindJSON(application); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    400,
+			"message": err.Error(),
+		})
+		return
+	}
+	resource := &v1alpha1.ContainerResource{
+		CPULimit:    application.CPULimit,
+		MemoryLimit: application.MemoryLimit,
+	}
+	err := h.store.CreateContainerResource(resource)
+	if err != nil {
+		glog.Errorf("Internal Server Error: %#v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    500,
+			"message": "Internal Server Error",
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"code":    200,
+		"message": "success",
 	})
 }
