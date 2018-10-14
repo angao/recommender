@@ -271,6 +271,7 @@ func (feeder *clusterStateFeeder) UpdateResources() {
 
 func Convert(recommendResource model.RecommendedContainerResources) *v1alpha1.ContainerResource {
 	return &v1alpha1.ContainerResource{
+		Name:                   recommendResource.ContainerName,
 		CPULimit:               int64(recommendResource.CPULimit),
 		MemoryLimit:            int64(recommendResource.MemoryLimit),
 		DiskReadIOLimit:        int64(recommendResource.DiskReadIOLimit),

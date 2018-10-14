@@ -63,7 +63,7 @@ func (db *datastore) AddOrUpdateContainerResource(resources []*v1alpha1.Containe
 
 	for _, resource := range resources {
 		resourceCopy := new(v1alpha1.ContainerResource)
-		has, err := session.Where("application_id = ?", resource.ApplicationID).Limit(1).Get(resourceCopy)
+		has, err := session.Where("application_id = ?", resource.ApplicationID).And("name = ?", resource.Name).Limit(1).Get(resourceCopy)
 		if err != nil {
 			session.Rollback()
 			return err
