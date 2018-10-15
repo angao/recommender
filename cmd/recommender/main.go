@@ -29,22 +29,19 @@ import (
 )
 
 var (
-	metricsFetcherInterval = flag.Duration("recommender-interval", 2*time.Hour, `How often metrics should be fetched`)
-	prometheusAddress      = flag.String("prometheus-address", "", `Where to reach for Prometheus metrics`)
-	apiserverPort          = flag.Int("apiserver-port", 9098, `Specifies the http apiserver port`)
-	databaseConfig         = flag.String("db-config-file", "", `Where to reach for MySQL. The db config file type is yaml`)
+	metricsFetcherInterval = flag.Duration("recommender-interval", 1*time.Minute, `How often metrics should be fetched`)
+	globalConfig           = flag.String("config-file", "", `Specifies global config file. The config file type is yaml`)
 )
 
 func main() {
 	util_flag.InitFlags()
-	glog.V(1).Infof("Recommender %s and listen on %d", version.RecommenderVersion, *apiserverPort)
-
-	config, err := utils.Unmarshal(*databaseConfig)
+	globalConfig, err := utils.Unmarshal(*globalConfig)
 	if err != nil {
-		glog.Fatalf("databaseConfig parse failed: %+v", err)
+		glog.Fatalf("global globalConfig parse failed: %+v", err)
 	}
 
-	recommender := routines.NewRecommender(*prometheusAddress, config, *apiserverPort)
+	glog.V(1).Infof("Recommender %s", version.RecommenderVersion)
+	recommender := routines.NewRecommender(globalConfig)
 
 	recommender.RunOnce()
 	for {

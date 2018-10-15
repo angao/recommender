@@ -19,10 +19,11 @@ package datastore
 import (
 	"time"
 
+	"github.com/angao/recommender/pkg/store"
+	"github.com/angao/recommender/pkg/utils"
+
 	"github.com/go-xorm/core"
 	"github.com/go-xorm/xorm"
-
-	"github.com/angao/recommender/pkg/store"
 
 	"github.com/golang/glog"
 )
@@ -36,7 +37,7 @@ type datastore struct {
 
 // New creates a database connection for the given driver and datasource
 // and returns a new Store.
-func New(driver, config string) store.Store {
+func New(driver string, config utils.DatabaseConfig) store.Store {
 	return &datastore{
 		Engine: create(driver, config),
 		driver: driver,
@@ -45,8 +46,9 @@ func New(driver, config string) store.Store {
 
 // create opens a new database connection with the specified
 // driver and connection string and returns a store.
-func create(driver, config string) *xorm.Engine {
-	engine, err := xorm.NewEngine(driver, config)
+func create(driver string, config utils.DatabaseConfig) *xorm.Engine {
+	schema := config.Format()
+	engine, err := xorm.NewEngine(driver, schema)
 	if err != nil {
 		glog.Fatalf("database connection failed: %#v", err)
 	}
@@ -57,11 +59,11 @@ func create(driver, config string) *xorm.Engine {
 	// engine.ShowSQL(true)
 
 	go pingDatabase(engine)
+
 	engine.SetTableMapper(core.NewPrefixMapper(core.SnakeMapper{}, "t_"))
-	if driver == "mysql" {
-		// per issue https://github.com/go-sql-driver/mysql/issues/257
-		engine.SetMaxIdleConns(0)
-	}
+
+	engine.SetMaxIdleConns(config.MaxIdleConns)
+	engine.SetMaxOpenConns(config.MaxOpenConns)
 	return engine
 }
 

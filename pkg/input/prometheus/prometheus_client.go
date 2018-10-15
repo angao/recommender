@@ -24,7 +24,7 @@ import (
 )
 
 var (
-	numRetries = 10
+	numRetries = 5
 	retryDelay = 3 * time.Second
 )
 

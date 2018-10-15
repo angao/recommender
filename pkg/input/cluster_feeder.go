@@ -17,16 +17,19 @@ limitations under the License.
 package input
 
 import (
-	"strconv"
+	"errors"
+	"fmt"
+	"math"
 	"time"
 
 	"github.com/angao/recommender/pkg/apis/v1alpha1"
-	"github.com/angao/recommender/pkg/utils/work"
-	"github.com/golang/glog"
-
 	"github.com/angao/recommender/pkg/input/prometheus"
 	"github.com/angao/recommender/pkg/model"
 	"github.com/angao/recommender/pkg/store"
+	"github.com/angao/recommender/pkg/utils"
+	"github.com/angao/recommender/pkg/utils/work"
+
+	"github.com/golang/glog"
 )
 
 // ClusterStateFeeder can update state of ClusterState object.
@@ -49,17 +52,19 @@ type ClusterStateFeeder interface {
 }
 
 // NewClusterStateFeeder creates new ClusterStateFeeder with internal data providers, based on kube client config and a historyProvider.
-func NewClusterStateFeeder(store store.Store, prometheusAddress string, clusterState *model.ClusterState) ClusterStateFeeder {
+func NewClusterStateFeeder(store store.Store, globalConfig *utils.GlobalConfig, clusterState *model.ClusterState) ClusterStateFeeder {
 	return &clusterStateFeeder{
 		store:        store,
 		clusterState: clusterState,
-		provider:     prometheus.NewPrometheusHistoryProvider(prometheusAddress),
+		globalConfig: globalConfig,
+		provider:     prometheus.NewPrometheusHistoryProvider(globalConfig.PrometheusConfig.Address),
 	}
 }
 
 type clusterStateFeeder struct {
 	store        store.Store
 	clusterState *model.ClusterState
+	globalConfig *utils.GlobalConfig
 	provider     prometheus.Provider
 }
 
@@ -146,8 +151,8 @@ func (feeder *clusterStateFeeder) LoadTimeframeVPAs() {
 	}
 }
 
-func (feeder *clusterStateFeeder) loadHistoryMetrics(name string) {
-	aggregateContainerState, err := feeder.provider.GetHistoryMetrics(name)
+func (feeder *clusterStateFeeder) loadHistoryMetrics(name, history string) {
+	aggregateContainerState, err := feeder.provider.GetHistoryMetrics(name, history)
 	if err != nil {
 		glog.Errorf("Cannot get %s history metrics", name)
 	}
@@ -155,6 +160,7 @@ func (feeder *clusterStateFeeder) loadHistoryMetrics(name string) {
 	for vpaID, vpa := range feeder.clusterState.Vpas {
 		if vpaID == applicationID {
 			vpa.SetAggregationContainerState(aggregateContainerState)
+			break
 		}
 	}
 }
@@ -168,7 +174,7 @@ func (feeder *clusterStateFeeder) getTimeframeMetrics(appName, historyLen, offse
 	return aggregateContainerState, nil
 }
 
-type QueryParam struct {
+type queryParam struct {
 	TimeframeName string
 	AppName       string
 	HistoryLen    string
@@ -176,28 +182,22 @@ type QueryParam struct {
 }
 
 func (feeder *clusterStateFeeder) LoadTimeframeMetrics() {
-	queryParams := make([]QueryParam, 0)
+	queryParams := make([]queryParam, 0)
 	now := time.Now()
 	for timeframeName, timeframe := range feeder.clusterState.Timeframes {
 		timeframeVpa := feeder.clusterState.TimeframeVpas[timeframeName]
 		for appID := range timeframeVpa {
-			duration := timeframe.End.Sub(timeframe.Start).Minutes()
-			if duration <= 0 {
-				glog.Errorf("timeframe %s start after end", timeframeName)
-				continue
+			history, offset, err := parse(timeframe.Start, timeframe.End, now)
+			if err != nil {
+				glog.Errorf("parse timeframe time: %+v", err)
 			}
-			offset := now.Sub(timeframe.End).Hours()
-			if offset < 0 {
-				glog.Errorf("timeframe %s end time after now", timeframeName)
-				continue
-			}
-			queryParam := QueryParam{
+			param := queryParam{
 				TimeframeName: timeframeName,
 				AppName:       appID.Name,
-				HistoryLen:    strconv.Itoa(int(duration)),
-				Offset:        strconv.Itoa(int(offset)),
+				HistoryLen:    history,
+				Offset:        offset,
 			}
-			queryParams = append(queryParams, queryParam)
+			queryParams = append(queryParams, param)
 		}
 	}
 	load := func(i int) {
@@ -210,6 +210,7 @@ func (feeder *clusterStateFeeder) LoadTimeframeMetrics() {
 		for appID, vpa := range timeframeVPA {
 			if appID.Name == queryParam.AppName {
 				vpa.SetAggregationContainerState(aggregateContainerState)
+				break
 			}
 		}
 	}
@@ -224,7 +225,7 @@ func (feeder *clusterStateFeeder) LoadMetrics() {
 
 	load := func(i int) {
 		name := applications[i]
-		feeder.loadHistoryMetrics(name)
+		feeder.loadHistoryMetrics(name, feeder.globalConfig.ExtraConfig.History)
 	}
 
 	work.Parallelize(8, len(applications), load)
@@ -237,7 +238,7 @@ func (feeder *clusterStateFeeder) UpdateResources() {
 		applicationID := model.ApplicationID{Name: application.Name}
 		vpa := feeder.clusterState.Vpas[applicationID]
 		for _, recommendResource := range vpa.Recommendation {
-			containerResource := Convert(recommendResource)
+			containerResource := convert(recommendResource)
 			containerResource.ApplicationID = application.ID
 			containerResources = append(containerResources, containerResource)
 		}
@@ -248,7 +249,7 @@ func (feeder *clusterStateFeeder) UpdateResources() {
 		for appID, vpa := range timeframeVPA {
 			application := feeder.clusterState.Applications[appID.Name]
 			for _, recommendResource := range vpa.Recommendation {
-				containerResource := Convert(recommendResource)
+				containerResource := convert(recommendResource)
 				containerResource.ApplicationID = application.ID
 				containerResource.TimeframeID = timeframe.ID
 				containerResources = append(containerResources, containerResource)
@@ -269,7 +270,7 @@ func (feeder *clusterStateFeeder) UpdateResources() {
 	}
 }
 
-func Convert(recommendResource model.RecommendedContainerResources) *v1alpha1.ContainerResource {
+func convert(recommendResource model.RecommendedContainerResources) *v1alpha1.ContainerResource {
 	return &v1alpha1.ContainerResource{
 		Name:                   recommendResource.ContainerName,
 		CPULimit:               int64(recommendResource.CPULimit),
@@ -279,4 +280,27 @@ func Convert(recommendResource model.RecommendedContainerResources) *v1alpha1.Co
 		NetworkReceiveIOLimit:  int64(recommendResource.NetworkReceiveIOLimit),
 		NetworkTransmitIOLimit: int64(recommendResource.NetworkTransmitIOLimit),
 	}
+}
+
+func parse(start, end, now time.Time) (string, string, error) {
+	hisDuration := end.Sub(start).Minutes()
+	if hisDuration <= 0 {
+		return "", "", errors.New("timeframe start after end")
+	}
+	offsetDuration := now.Sub(end).Hours()
+	if offsetDuration < 0 {
+		return "", "", errors.New("timeframe end time after now")
+	}
+	history := fmt.Sprintf("%dm", int(hisDuration))
+	offset := ""
+	if offsetDuration > 365*24 {
+		offset = fmt.Sprintf("%dy", int(math.Ceil(offsetDuration/(365*24))))
+	} else if offsetDuration > 7*24 {
+		offset = fmt.Sprintf("%dw", int(math.Ceil(offsetDuration/(7*24))))
+	} else if offsetDuration > 24 {
+		offset = fmt.Sprintf("%dd", int(math.Ceil(offsetDuration/24)))
+	} else {
+		offset = fmt.Sprintf("%dh", int(offsetDuration))
+	}
+	return history, offset, nil
 }

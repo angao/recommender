@@ -38,6 +38,10 @@ type RecommendResourceStore interface {
 	// RecommendResource CRUD
 	GetApplicationResource(name string) (*ApplicationResource, error)
 
+	DeleteApplicationResource(name string) error
+
+	DeleteTimeframeResource(name string) error
+
 	ListApplicationResource() ([]*ApplicationResource, error)
 
 	AddOrUpdateContainerResource(resource []*ContainerResource) error
@@ -68,6 +72,7 @@ type Application struct {
 	Name    string    `json:"name"    form:"name"       xorm:"name"`
 	Created time.Time `json:"created"                   xorm:"created"`
 	Updated time.Time `json:"updated"                   xorm:"updated"`
+	Deleted time.Time `json:"deleted"                   xorm:"deleted"`
 }
 
 // ContainerResource defines container of application resource
@@ -103,6 +108,7 @@ type Timeframe struct {
 	Description string    `json:"description"         xorm:"description"`
 	Created     time.Time `json:"created"             xorm:"created"`
 	Updated     time.Time `json:"updated"             xorm:"updated"`
+	Deleted     time.Time `json:"deleted"             xorm:"deleted"`
 }
 
 type ApplicationResource struct {

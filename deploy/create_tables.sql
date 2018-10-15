@@ -1,10 +1,10 @@
 CREATE TABLE IF NOT EXISTS `t_application` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(64) NOT NULL DEFAULT '' COMMENT '应用名称',
-  `created` datetime DEFAULT NULL,
-  `updated` datetime DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `t_application_unique` (`name`)
+  `created` datetime DEFAULT NULL COMMENT '创建时间',
+  `updated` datetime DEFAULT NULL COMMENT '修改时间',
+  `deleted` datetime DEFAULT NULL COMMENT '删除时间',
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `t_container_resource` (
@@ -32,6 +32,6 @@ CREATE TABLE IF NOT EXISTS `t_timeframe` (
   `description` varchar(255) DEFAULT NULL COMMENT '描述',
   `created` datetime DEFAULT NULL COMMENT '创建时间',
   `updated` datetime DEFAULT NULL COMMENT '修改时间',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `t_timeframe_unique` (`name`)
+  `deleted` datetime DEFAULT NULL COMMENT '删除时间',
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;

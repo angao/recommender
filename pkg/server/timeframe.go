@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/angao/recommender/pkg/apis/v1alpha1"
@@ -32,6 +31,7 @@ import (
 const Layout = "2006-01-02 15:04:05"
 
 type TimeframeForm struct {
+	ID          int64  `json:"id"`
 	Name        string `json:"name"`
 	Start       string `form:"start"`
 	End         string `form:"end"`
@@ -46,7 +46,7 @@ func (h *httpController) GetTimeframe(c *gin.Context) {
 		glog.Errorf("GetTimeframe Internal Server Error: %#v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    500,
-			"message": "Internal Server Error",
+			"message": err.Error(),
 		})
 		return
 	}
@@ -81,7 +81,7 @@ func (h *httpController) CreateTimeframe(c *gin.Context) {
 		glog.Errorf("CreateApplication Internal Server Error: %#v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    500,
-			"message": "Internal Server Error",
+			"message": err.Error(),
 		})
 		return
 	}
@@ -98,7 +98,7 @@ func (h *httpController) CreateTimeframe(c *gin.Context) {
 		glog.Errorf("CreateTimeframe Internal Server Error: %#v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    500,
-			"message": "Internal Server Error",
+			"message": err.Error(),
 		})
 		return
 	}
@@ -114,7 +114,7 @@ func (h *httpController) ListTimeframes(c *gin.Context) {
 		glog.Errorf("ListTimeframes Internal Server Error: %#v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    500,
-			"message": "Internal Server Error",
+			"message": err.Error(),
 		})
 		return
 	}
@@ -126,15 +126,6 @@ func (h *httpController) ListTimeframes(c *gin.Context) {
 }
 
 func (h *httpController) UpdateTimeframe(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"code":    400,
-			"message": err.Error(),
-		})
-		return
-	}
 	timeframeForm := new(TimeframeForm)
 	if err := c.ShouldBindJSON(timeframeForm); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -157,24 +148,23 @@ func (h *httpController) UpdateTimeframe(c *gin.Context) {
 		glog.Errorf("UpdateTimeframe Internal Server Error: %#v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    500,
-			"message": "Internal Server Error",
+			"message": err.Error(),
 		})
 		return
 	}
-	if timeframeCopy != nil && timeframeCopy.ID != id {
+	if timeframeCopy != nil && timeframeCopy.ID != timeframe.ID {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":    400,
 			"message": "name is already exist",
 		})
 		return
 	}
-	timeframe.ID = id
 	err = h.store.UpdateTimeframe(timeframe)
 	if err != nil {
 		glog.Errorf("UpdateTimeframe Internal Server Error: %#v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    500,
-			"message": "Internal Server Error",
+			"message": err.Error(),
 		})
 		return
 	}
@@ -191,13 +181,13 @@ func (h *httpController) DeleteTimeframe(c *gin.Context) {
 		glog.Errorf("DeleteTimeframe Internal Server Error: %#v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    500,
-			"message": "Internal Server Error",
+			"message": err.Error(),
 		})
 		return
 	}
 	if timeframe == nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"code":    400,
+			"code":    404,
 			"message": fmt.Sprintf("%s not found", name),
 		})
 		return
@@ -207,7 +197,7 @@ func (h *httpController) DeleteTimeframe(c *gin.Context) {
 		glog.Errorf("DeleteTimeframe Internal Server Error: %#v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    500,
-			"message": "Internal Server Error",
+			"message": err.Error(),
 		})
 		return
 	}
@@ -250,6 +240,10 @@ func ParseAndValidate(form *TimeframeForm, flag string) (*v1alpha1.Timeframe, er
 	}
 	if flag == "update" {
 		timeframe := &v1alpha1.Timeframe{}
+		if form.ID == 0 {
+			return nil, errors.New("update: id cannot be empty")
+		}
+		timeframe.ID = form.ID
 		if len(form.Name) != 0 {
 			timeframe.Name = form.Name
 		}

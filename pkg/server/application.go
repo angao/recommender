@@ -68,7 +68,7 @@ func (h *httpController) CreateApplication(c *gin.Context) {
 		glog.Errorf("CreateApplication Internal Server Error: %#v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    500,
-			"message": "Internal Server Error",
+			"message": err.Error(),
 		})
 		return
 	}
@@ -85,7 +85,7 @@ func (h *httpController) CreateApplication(c *gin.Context) {
 		glog.Errorf("Internal Server Error: %#v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    500,
-			"message": "Internal Server Error",
+			"message": err.Error(),
 		})
 		return
 	}
@@ -101,7 +101,7 @@ func (h *httpController) ListApplications(c *gin.Context) {
 		glog.Errorf("ListApplications Internal Server Error: %#v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    500,
-			"message": "Internal Server Error",
+			"message": err.Error(),
 		})
 		return
 	}
@@ -119,13 +119,13 @@ func (h *httpController) DeleteApplication(c *gin.Context) {
 		glog.Errorf("DeleteApplication Internal Server Error: %#v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    500,
-			"message": "Internal Server Error",
+			"message": err.Error(),
 		})
 		return
 	}
 	if application == nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"code":    400,
+			"code":    404,
 			"message": fmt.Sprintf("%s not found", name),
 		})
 		return
@@ -135,7 +135,7 @@ func (h *httpController) DeleteApplication(c *gin.Context) {
 		glog.Errorf("DeleteApplication Internal Server Error: %#v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    500,
-			"message": "Internal Server Error",
+			"message": err.Error(),
 		})
 		return
 	}

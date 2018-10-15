@@ -17,6 +17,8 @@ limitations under the License.
 package datastore
 
 import (
+	"fmt"
+
 	"github.com/angao/recommender/pkg/apis/v1alpha1"
 )
 
@@ -30,7 +32,7 @@ func (db *datastore) GetApplicationResource(name string) (*v1alpha1.ApplicationR
 	if !b {
 		return nil, nil
 	}
-	err = db.Engine.Where("application_id = ?", application.ID).And("timeframe_id != 0").Find(&containerResources)
+	err = db.Engine.Where("application_id = ?", application.ID).And("timeframe_id = 0").Find(&containerResources)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +51,7 @@ func (db *datastore) ListApplicationResource() ([]*v1alpha1.ApplicationResource,
 	if err != nil {
 		return nil, err
 	}
-	err = db.Engine.Where("timeframe_id != 0").Find(&containerResources)
+	err = db.Engine.Where("timeframe_id = 0").Find(&containerResources)
 	if err != nil {
 		return nil, err
 	}
@@ -185,4 +187,62 @@ func compare(r1, r2 *v1alpha1.ContainerResource) {
 func (db *datastore) CreateContainerResource(resource *v1alpha1.ContainerResource) error {
 	_, err := db.Engine.Insert(resource)
 	return err
+}
+
+func (db *datastore) DeleteApplicationResource(name string) error {
+	session := db.Engine.NewSession()
+	defer session.Close()
+
+	session.Begin()
+
+	application := new(v1alpha1.Application)
+	has, err := session.Unscoped().Where("name = ?", name).Get(application)
+	if err != nil {
+		return err
+	}
+	if !has {
+		return fmt.Errorf("%s not found", name)
+	}
+	containerResources := make([]*v1alpha1.ContainerResource, 0)
+	err = session.Where("application_id = ?", application.ID).And("timeframe_id = 0").Find(&containerResources)
+	if err != nil {
+		return err
+	}
+	for _, resource := range containerResources {
+		_, err := session.ID(resource.ID).Delete(resource)
+		if err != nil {
+			session.Rollback()
+			return err
+		}
+	}
+	return session.Commit()
+}
+
+func (db *datastore) DeleteTimeframeResource(name string) error {
+	session := db.Engine.NewSession()
+	defer session.Close()
+
+	session.Begin()
+
+	timeframe := new(v1alpha1.Timeframe)
+	has, err := session.Unscoped().Where("name = ?", name).Get(timeframe)
+	if err != nil {
+		return err
+	}
+	if !has {
+		return fmt.Errorf("%s not found", name)
+	}
+	containerResources := make([]*v1alpha1.ContainerResource, 0)
+	err = session.Where("timeframe_id = ?", timeframe.ID).Find(&containerResources)
+	if err != nil {
+		return err
+	}
+	for _, resource := range containerResources {
+		_, err := session.ID(resource.ID).Delete(resource)
+		if err != nil {
+			session.Rollback()
+			return err
+		}
+	}
+	return session.Commit()
 }

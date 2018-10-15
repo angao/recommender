@@ -37,6 +37,10 @@ type Store interface {
 
 	CreateContainerResource(resource *v1alpha1.ContainerResource) error
 
+	DeleteApplicationResource(name string) error
+
+	DeleteTimeframeResource(name string) error
+
 	ListApplicationResource() ([]*v1alpha1.ApplicationResource, error)
 
 	ListTimeframeApplicationResource(name string) ([]*v1alpha1.ApplicationResource, error)

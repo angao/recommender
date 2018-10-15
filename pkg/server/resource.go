@@ -34,7 +34,7 @@ func (h *httpController) GetResource(c *gin.Context) {
 		glog.Errorf("Internal Server Error: %#v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    500,
-			"message": "Internal Server Error",
+			"message": err.Error(),
 		})
 		return
 	}
@@ -58,7 +58,7 @@ func (h *httpController) ListResource(c *gin.Context) {
 		glog.Errorf("Internal Server Error: %#v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    500,
-			"message": "Internal Server Error",
+			"message": err.Error(),
 		})
 		return
 	}
@@ -77,7 +77,7 @@ func (h *httpController) ListTimeframeResource(c *gin.Context) {
 		glog.Errorf("Internal Server Error: %#v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    500,
-			"message": "Internal Server Error",
+			"message": err.Error(),
 		})
 		return
 	}
@@ -97,7 +97,7 @@ func (h *httpController) GetTimeframeResource(c *gin.Context) {
 		glog.Errorf("Internal Server Error: %#v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    500,
-			"message": "Internal Server Error",
+			"message": err.Error(),
 		})
 		return
 	}
@@ -132,7 +132,39 @@ func (h *httpController) CreateResource(c *gin.Context) {
 		glog.Errorf("Internal Server Error: %#v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    500,
-			"message": "Internal Server Error",
+			"message": err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"code":    200,
+		"message": "success",
+	})
+}
+
+func (h *httpController) DeleteResource(c *gin.Context) {
+	name := c.Param("name")
+	err := h.store.DeleteApplicationResource(name)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    500,
+			"message": err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"code":    200,
+		"message": "success",
+	})
+}
+
+func (h *httpController) DeleteTimeframeResource(c *gin.Context) {
+	name := c.Param("name")
+	err := h.store.DeleteTimeframeResource(name)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    500,
+			"message": err.Error(),
 		})
 		return
 	}

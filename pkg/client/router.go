@@ -37,10 +37,11 @@ func Load(s server.Controller, middleware ...gin.HandlerFunc) http.Handler {
 	e.Use(header.Options)
 
 	e.Use(middleware...)
-	e.Use(gin.Logger())
+	// e.Use(gin.Logger())
 
 	e.NoRoute(func(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{
+			"code":    404,
 			"message": "request not found",
 		})
 	})
@@ -53,15 +54,17 @@ func Load(s server.Controller, middleware ...gin.HandlerFunc) http.Handler {
 		app.DELETE("/application/:name", s.DeleteApplication)
 
 		app.GET("/resource/:name", s.GetResource)
+		app.DELETE("/resource/:name", s.DeleteResource)
 		app.GET("/resources", s.ListResource)
 		app.GET("/resources/timeframe/:name", s.ListTimeframeResource)
+		app.DELETE("/resources/timeframe/:name", s.DeleteTimeframeResource)
 		app.GET("/resources/timeframe/:name/:appName", s.GetTimeframeResource)
 		// app.POST("/resource", s.CreateResource)
 
 		app.POST("/timeframe", s.CreateTimeframe)
 		app.GET("/timeframes", s.ListTimeframes)
 		app.GET("/timeframe/:name", s.GetTimeframe)
-		app.PUT("/timeframe/:id", s.UpdateTimeframe)
+		app.PUT("/timeframe", s.UpdateTimeframe)
 		app.DELETE("/timeframe/:name", s.DeleteTimeframe)
 	}
 

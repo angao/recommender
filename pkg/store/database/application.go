@@ -44,33 +44,11 @@ func (db *datastore) ListApplication() ([]*v1alpha1.Application, error) {
 }
 
 func (db *datastore) UpdateApplication(application *v1alpha1.Application) error {
-	_, err := db.Engine.Id(application.ID).Update(application)
+	_, err := db.Engine.ID(application.ID).Update(application)
 	return err
 }
 
 func (db *datastore) DeleteApplication(application *v1alpha1.Application) error {
-	session := db.Engine.NewSession()
-	defer session.Close()
-	session.Begin()
-
-	_, err := session.ID(application.ID).Delete(application)
-	if err != nil {
-		session.Rollback()
-		return err
-	}
-	containerResources := make([]*v1alpha1.ContainerResource, 0)
-	err = session.Where("application_id = ?", application.ID).Find(&containerResources)
-	if err != nil {
-		session.Rollback()
-		return err
-	}
-	for _, containerResource := range containerResources {
-		_, err := session.ID(containerResource.ID).Delete(containerResource)
-		if err != nil {
-			session.Rollback()
-			return err
-		}
-	}
-
-	return session.Commit()
+	_, err := db.Engine.Id(application.ID).Delete(application)
+	return err
 }

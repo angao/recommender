@@ -91,19 +91,18 @@ func (r *recommender) updateVPAs() {
 // NewRecommender creates a new recommender instance,
 // which can be run in order to provide continuous resource recommendations for containers.
 // It requires cluster configuration object and duration between recommender intervals.
-func NewRecommender(prometheusAddress string, databaseConfig *utils.DatabaseConfig, apiserverPort int) Recommender {
-	config := databaseConfig.Format()
-	store := datastore.New(Driver, config)
+func NewRecommender(globalConfig *utils.GlobalConfig) Recommender {
+	store := datastore.New(Driver, globalConfig.DatabaseConfig)
 	clusterState := model.NewClusterState()
 	recommender := &recommender{
 		clusterState:        clusterState,
-		clusterStateFeeder:  input.NewClusterStateFeeder(store, prometheusAddress, clusterState),
+		clusterStateFeeder:  input.NewClusterStateFeeder(store, globalConfig, clusterState),
 		resourceRecommender: logic.CreateResourceRecommender(),
 	}
 	glog.V(3).Infof("New Recommender created %+v", recommender)
 
 	s := server.NewController(store)
-	startHTTPServer(s, apiserverPort)
+	startHTTPServer(s, globalConfig.ExtraConfig.APIPort)
 
 	return recommender
 }
@@ -119,5 +118,5 @@ func startHTTPServer(ctrl server.Controller, port int) {
 			glog.Fatalf("http server start failed: %v", err)
 		}
 	}()
-	glog.V(2).Infof("HTTP Server started.")
+	glog.V(2).Infof("HTTP Server started and listening on %d.", port)
 }
