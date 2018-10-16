@@ -65,25 +65,33 @@ func (db *datastore) AddOrUpdateContainerResource(resources []*v1alpha1.Containe
 
 	for _, resource := range resources {
 		resourceCopy := new(v1alpha1.ContainerResource)
-		has, err := session.Where("application_id = ?", resource.ApplicationID).And("name = ?", resource.Name).Limit(1).Get(resourceCopy)
+		has := false
+		var err error
+		if resource.TimeframeID == 0 {
+			has, err = session.Where("application_id = ?", resource.ApplicationID).
+				And("name = ?", resource.Name).And("timeframe_id = 0").Limit(1).Get(resourceCopy)
+		} else {
+			has, err = session.Where("application_id = ?", resource.ApplicationID).
+				And("name = ?", resource.Name).And("timeframe_id = ?", resource.TimeframeID).Limit(1).Get(resourceCopy)
+		}
+
 		if err != nil {
 			session.Rollback()
 			return err
 		}
 		if has {
-			if resource.TimeframeID == 0 {
-				compare(resource, resourceCopy)
-			}
-			_, err := session.ID(resource.ID).Update(resource)
+			compare(resource, resourceCopy)
+			_, err := session.ID(resourceCopy.ID).Update(resource)
 			if err != nil {
 				session.Rollback()
 				return err
 			}
-		}
-		_, err = session.Insert(resource)
-		if err != nil {
-			session.Rollback()
-			return err
+		} else {
+			_, err = session.Insert(resource)
+			if err != nil {
+				session.Rollback()
+				return err
+			}
 		}
 	}
 	return session.Commit()

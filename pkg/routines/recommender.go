@@ -19,7 +19,6 @@ package routines
 import (
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/angao/recommender/pkg/client"
 	"github.com/angao/recommender/pkg/input"
@@ -62,9 +61,7 @@ func (r *recommender) GetClusterStateFeeder() input.ClusterStateFeeder {
 }
 
 func (r *recommender) RunOnce() {
-	start := time.Now()
 	glog.V(3).Infof("Recommender Run")
-	defer glog.V(3).Infof("Recommender Finished: %v", time.Since(start))
 	r.clusterStateFeeder.LoadApplications()
 	r.clusterStateFeeder.LoadTimeframes()
 	r.clusterStateFeeder.LoadVPAs()
