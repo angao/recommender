@@ -19,6 +19,8 @@ package client
 import (
 	"net/http"
 
+	"github.com/angao/recommender/pkg/client/middleware/logger"
+
 	"github.com/angao/recommender/pkg/server"
 
 	"github.com/angao/recommender/pkg/client/middleware/header"
@@ -27,6 +29,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Load defines HTTP API
 func Load(s server.Controller, middleware ...gin.HandlerFunc) http.Handler {
 	e := gin.New()
 	gin.SetMode(gin.ReleaseMode)
@@ -37,7 +40,7 @@ func Load(s server.Controller, middleware ...gin.HandlerFunc) http.Handler {
 	e.Use(header.Options)
 
 	e.Use(middleware...)
-	// e.Use(gin.Logger())
+	e.Use(logger.Logger())
 
 	e.NoRoute(func(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{

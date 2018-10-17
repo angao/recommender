@@ -29,7 +29,7 @@ import (
 )
 
 var (
-	metricsFetcherInterval = flag.Duration("recommender-interval", 1*time.Minute, `How often metrics should be fetched`)
+	metricsFetcherInterval = flag.Duration("recommender-interval", 2*time.Hour, `How often metrics should be fetched`)
 	globalConfig           = flag.String("config-file", "", `Specifies global config file. The config file type is yaml`)
 )
 
