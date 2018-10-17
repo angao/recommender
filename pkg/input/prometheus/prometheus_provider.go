@@ -44,7 +44,7 @@ func NewPrometheusHistoryProvider(prometheusAddress string) Provider {
 }
 
 func getApplicationContainerFromLabels(labels map[string]string) (*model.ApplicationContainer, error) {
-	applicationName, ok := labels["application_name"]
+	applicationName, ok := labels["system_mwType_serviceID"]
 	if !ok {
 		return nil, fmt.Errorf("no pod_name label")
 	}

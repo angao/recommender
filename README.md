@@ -92,7 +92,7 @@ return
     "message": "success"
 }
 
-获取全部应用:
+3、获取全部应用:
 method: GET
 url: /api/v1/applications
 
@@ -111,7 +111,7 @@ return
     "message": "success"
 }
 ```
-3、删除应用
+4、删除应用
 ```
 method: DELETE
 url: /api/v1/application/:name
@@ -122,7 +122,7 @@ return
     "message": "success"
 }
 ```
-4、获取指定应用的资源推荐值
+5、获取指定应用的资源推荐值
 ```
 method: GET
 url: /api/v1/resource/:name
@@ -153,7 +153,7 @@ return
     "message": "success"
 }
 ```
-5、获取全部应用的资源推荐
+6、获取全部应用的资源推荐
 ```
 method: GET
 url: /api/v1/resources
@@ -186,7 +186,7 @@ return
     "message": "success"
 }
 ```
-6、获取指定时间段指定应用资源推荐
+7、获取指定时间段指定应用资源推荐
 ```
 method: GET
 url: /api/v1/resources/timeframe/:name/:appName
@@ -219,7 +219,7 @@ return
     "message": "success"
 }
 ```
-7、删除指定应用的推荐值
+8、删除指定应用的推荐值
 ```
 method: DELETE
 url: /api/v1/resource/:name
@@ -230,7 +230,7 @@ return
     "message": "success"
 }
 ```
-8、删除指定时间段应用的推荐值
+9、删除指定时间段应用的推荐值
 ```
 method: DELETE
 url: /api/v1/resources/timeframe/:name
@@ -241,7 +241,7 @@ return
     "message": "success"
 }
 ```
-9、创建指定时间段
+10、创建指定时间段
 ```
 method: POST
 url: /api/v1/timeframe
@@ -259,7 +259,7 @@ return
     "message": "success"
 }
 ```
-10、获取全部指定时间段
+11、获取全部指定时间段
 ```
 method: GET
 url: /api/v1/timeframes
@@ -283,7 +283,7 @@ return
     "message": "success"
 }
 ```
-11、获取指定时间段
+12、获取指定时间段
 ```
 method: GET
 url: /api/v1/timeframe/:name
@@ -305,7 +305,7 @@ return
     "message": "success"
 }
 ```
-12、更新指定时间段
+13、更新指定时间段
 ```
 method: PUT
 url: /api/v1/timeframe
@@ -325,7 +325,7 @@ return
     "message": "success"
 }
 ```
-13、删除指定时间段
+14、删除指定时间段
 ```
 method: DELETE
 url: /api/v1/timeframe/:name

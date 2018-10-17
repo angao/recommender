@@ -15,5 +15,6 @@
 package datastore
 
 import (
+	// load mysql driver
 	_ "github.com/go-sql-driver/mysql"
 )

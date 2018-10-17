@@ -55,7 +55,7 @@ func (db *datastore) ListApplicationResource() ([]*v1alpha1.ApplicationResource,
 	if err != nil {
 		return nil, err
 	}
-	return Combine(applications, containerResources), nil
+	return combine(applications, containerResources), nil
 }
 
 func (db *datastore) AddOrUpdateContainerResource(resources []*v1alpha1.ContainerResource) error {
@@ -81,7 +81,7 @@ func (db *datastore) AddOrUpdateContainerResource(resources []*v1alpha1.Containe
 		}
 		if has {
 			compare(resource, resourceCopy)
-			_, err := session.ID(resourceCopy.ID).Update(resource)
+			_, err = session.ID(resourceCopy.ID).Update(resource)
 			if err != nil {
 				session.Rollback()
 				return err
@@ -97,7 +97,7 @@ func (db *datastore) AddOrUpdateContainerResource(resources []*v1alpha1.Containe
 	return session.Commit()
 }
 
-func Combine(applications []*v1alpha1.Application, containerResources []*v1alpha1.ContainerResource) []*v1alpha1.ApplicationResource {
+func combine(applications []*v1alpha1.Application, containerResources []*v1alpha1.ContainerResource) []*v1alpha1.ApplicationResource {
 	applicationResources := make([]*v1alpha1.ApplicationResource, 0)
 
 	for _, application := range applications {
@@ -138,7 +138,7 @@ func (db *datastore) ListTimeframeApplicationResource(name string) ([]*v1alpha1.
 	if err != nil {
 		return nil, err
 	}
-	return Combine(applications, containerResources), nil
+	return combine(applications, containerResources), nil
 }
 
 func (db *datastore) GetTimeframeApplicationResource(name, appName string) (*v1alpha1.ApplicationResource, error) {

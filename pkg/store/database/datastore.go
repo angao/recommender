@@ -69,7 +69,7 @@ func create(driver string, config utils.DatabaseConfig) *xorm.Engine {
 
 func pingDatabase(engine *xorm.Engine) {
 	timer := time.NewTicker(10 * time.Minute)
-	for _ = range timer.C {
+	for range timer.C {
 		err := engine.Ping()
 		if err != nil {
 			glog.Errorf("database ping failed. retry in 10m. error: %#v", err)
