@@ -23,6 +23,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// DatabaseConfig defines database connection info
 type DatabaseConfig struct {
 	Username string `yaml:"username"`
 	Password string `yaml:"password"`
@@ -36,10 +37,12 @@ type DatabaseConfig struct {
 	MaxOpenConns int `yaml:"maxOpenConns"`
 }
 
+// PrometheusConfig defines which prometheus to connect
 type PrometheusConfig struct {
 	Address string `yaml:"address"`
 }
 
+// ExtraConfig defines extra config
 type ExtraConfig struct {
 	APIPort int    `yaml:"apiPort"`
 	History string `yaml:"history"`
@@ -52,10 +55,12 @@ type GlobalConfig struct {
 	ExtraConfig      ExtraConfig      `yaml:"extraConfig"`
 }
 
+// Format is stringify DatabaseConfig
 func (d *DatabaseConfig) Format() string {
 	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8", d.Username, d.Password, d.URL, d.Port, d.Name)
 }
 
+// Unmarshal defines how to parse file
 func Unmarshal(filename string) (*GlobalConfig, error) {
 	globalConfig := &GlobalConfig{}
 
@@ -80,7 +85,7 @@ func Unmarshal(filename string) (*GlobalConfig, error) {
 	}
 	// setting default prometheus fetch history length
 	if len(globalConfig.ExtraConfig.History) == 0 {
-		globalConfig.ExtraConfig.History = "90d"
+		globalConfig.ExtraConfig.History = "30d"
 	}
 	return globalConfig, nil
 }

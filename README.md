@@ -50,8 +50,8 @@ prometheusConfig:
   # Prometheus 服务地址
   address: "http://192.168.19.0:32100"
 extraConfig:
-  # Prometheus 默认查询历史时长，默认 90d
-  history: "90d"
+  # Prometheus 默认查询历史时长，默认 30d
+  history: "30d"
   # 对外 HTTP API 端口，默认 9098
   apiPort: 9098
 ```
@@ -91,8 +91,10 @@ return
     },
     "message": "success"
 }
+```
 
 3、获取全部应用:
+```
 method: GET
 url: /api/v1/applications
 

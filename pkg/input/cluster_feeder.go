@@ -19,7 +19,6 @@ package input
 import (
 	"errors"
 	"fmt"
-	"math"
 	"time"
 
 	"github.com/angao/recommender/pkg/apis/v1alpha1"
@@ -154,7 +153,7 @@ func (feeder *clusterStateFeeder) LoadTimeframeVPAs() {
 func (feeder *clusterStateFeeder) loadHistoryMetrics(name, history string) {
 	aggregateContainerState, err := feeder.provider.GetHistoryMetrics(name, history)
 	if err != nil {
-		glog.Errorf("Cannot get %s history metrics", name)
+		glog.Errorf("Cannot get %s history metrics. Reason: %+v", name, err)
 	}
 	applicationID := model.ApplicationID{Name: name}
 	for vpaID, vpa := range feeder.clusterState.Vpas {
@@ -168,7 +167,6 @@ func (feeder *clusterStateFeeder) loadHistoryMetrics(name, history string) {
 func (feeder *clusterStateFeeder) getTimeframeMetrics(appName, historyLen, offset string) (map[model.AggregateStateKey]*model.AggregateContainerState, error) {
 	aggregateContainerState, err := feeder.provider.GetTimeframeMetrics(appName, historyLen, offset)
 	if err != nil {
-		glog.Errorf("Cannot get %s timeframe history metrics", appName)
 		return nil, err
 	}
 	return aggregateContainerState, nil
@@ -204,6 +202,7 @@ func (feeder *clusterStateFeeder) LoadTimeframeMetrics() {
 		queryParam := queryParams[i]
 		aggregateContainerState, err := feeder.getTimeframeMetrics(queryParam.AppName, queryParam.HistoryLen, queryParam.Offset)
 		if err != nil {
+			glog.Errorf("Cannot get %s timeframe history metrics. Reason: %+v", queryParam.AppName, err)
 			return
 		}
 		timeframeVPA := feeder.clusterState.TimeframeVpas[queryParam.TimeframeName]
@@ -287,20 +286,11 @@ func parse(start, end, now time.Time) (string, string, error) {
 	if hisDuration <= 0 {
 		return "", "", errors.New("timeframe start after end")
 	}
-	offsetDuration := now.Sub(end).Hours()
+	offsetDuration := now.Sub(end).Minutes()
 	if offsetDuration < 0 {
 		return "", "", errors.New("timeframe end time after now")
 	}
 	history := fmt.Sprintf("%dm", int(hisDuration))
-	offset := ""
-	if offsetDuration > 365*24 {
-		offset = fmt.Sprintf("%dy", int(math.Ceil(offsetDuration/(365*24))))
-	} else if offsetDuration > 7*24 {
-		offset = fmt.Sprintf("%dw", int(math.Ceil(offsetDuration/(7*24))))
-	} else if offsetDuration > 24 {
-		offset = fmt.Sprintf("%dd", int(math.Ceil(offsetDuration/24)))
-	} else {
-		offset = fmt.Sprintf("%dh", int(offsetDuration))
-	}
+	offset := fmt.Sprintf("%dm", int(offsetDuration))
 	return history, offset, nil
 }
