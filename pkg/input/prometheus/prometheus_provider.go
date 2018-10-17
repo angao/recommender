@@ -102,7 +102,7 @@ func (p *prometheusProvider) readResource(res map[model.AggregateStateKey]*model
 
 func (p *prometheusProvider) GetHistoryMetrics(name, historyLength string) (map[model.AggregateStateKey]*model.AggregateContainerState, error) {
 	res := make(map[model.AggregateStateKey]*model.AggregateContainerState)
-	podSelector := fmt.Sprintf(`job="kubernetes-cadvisor",pod_name=~"^.*$",container_name!="POD",image!="",name=~"^k8s_.*",system_mwType_serviceID="%s"`, name)
+	podSelector := fmt.Sprintf(`pod_name=~"^.*$",container_name!="POD",image!="",name=~"^k8s_.*",system_mwType_serviceID="%s"`, name)
 	err := p.readResource(res, fmt.Sprintf("max_over_time(container_cpu_usage_seconds_total:rate:1m{%s}[%s])", podSelector, historyLength), model.ResourceCPU)
 	if err != nil {
 		return nil, fmt.Errorf("cannot get cpu usage history: %v", err)
