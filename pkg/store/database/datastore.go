@@ -19,6 +19,8 @@ package datastore
 import (
 	"time"
 
+	"github.com/angao/recommender/pkg/store/logger"
+
 	"github.com/angao/recommender/pkg/store"
 	"github.com/angao/recommender/pkg/utils"
 
@@ -57,6 +59,7 @@ func create(driver string, config utils.DatabaseConfig) *xorm.Engine {
 		glog.Errorf("database ping attempts failed: %#v", err)
 	}
 	// engine.ShowSQL(true)
+	engine.SetLogger(&logger.Logger{})
 
 	go pingDatabase(engine)
 
